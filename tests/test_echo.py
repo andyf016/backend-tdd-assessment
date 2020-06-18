@@ -16,6 +16,7 @@ import argparse
 import unittest
 import subprocess
 from io import StringIO
+import echo
 
 # devs: change this to 'soln.echo' to run this suite against the solution
 PKG_NAME = 'echo'
@@ -73,12 +74,12 @@ class TestEcho(unittest.TestCase):
             }
         # check the module for required functions
         assert "main" in cls.funcs, "Missing required function main()"
-        assert "create_parser" in cls.funcs, "Missing required function create_parser()"
+        assert "create_parser" in cls.funcs, "Missing required \
+                function create_parser()"
 
     def setUp(self):
         """Called by parent class ONCE before all tests are run"""
-        # your code here - use this space to create any instance variables
-        # that will be visible to your other test methods
+        self.parser = echo.create_parser()
         pass
 
     def test_parser(self):
@@ -88,14 +89,65 @@ class TestEcho(unittest.TestCase):
             result, argparse.ArgumentParser,
             "create_parser() function is not returning a parser object")
 
-    #
-    # Students: add more parser tests here
-    #
+    def test_help(self):
+        """Running the program without arguments should show usage."""
+
+    # Run the command `python ./echo.py -h` in a separate process, then
+    # collect its output.
+        process = subprocess.Popen(
+            ["python", "./echo.py", "-h"],
+            stdout=subprocess.PIPE)
+        stdout, _ = process.communicate()
+        usage = open('./USAGE', 'r').read()
+
+        self.assertEqual(stdout.decode(), usage)
 
     def test_echo(self):
         """Check if main() function prints anything at all"""
         stdout, stderr = run_capture(self.module.__file__)
         pass
+
+    def test_upper_long(self):
+        """Check if long option '--upper' performs uppercasing"""
+        args = ["--upper", "hello"]
+        with Capturing() as output:
+            self.module.main(args)
+        self.assertEqual(output[0], "HELLO")
+
+    def test_upper_short(self):
+        """Check if short option '-u' performs uppercasing"""
+        args = ["-u", "hello"]
+        with Capturing() as output:
+            self.module.main(args)
+        self.assertEqual(output[0], "HELLO")
+
+    def test_lower_long(self):
+        """Check if long option '--lower' performs lowercasing"""
+        args = ["--lower", "HELLO WORLD"]
+        with Capturing() as output:
+            self.module.main(args)
+        self.assertEqual(output[0], "hello world")
+
+    def test_title_short(self):
+        """Check if short option '-t' performs Titlecasing"""
+        args = ["-t", "hello"]
+        with Capturing() as output:
+            self.module.main(args)
+        self.assertEqual(output[0], "Hello")
+
+    def test_title_long(self):
+        """Check if long option '--title' performs Titlecasing"""
+        args = ["--title", "hello"]
+        with Capturing() as output:
+            self.module.main(args)
+        self.assertEqual(output[0], "Hello")
+
+    def test_none(self):
+        """Check if no options return the text"""
+        args = ["HELLO"]
+        with Capturing() as output:
+            self.module.main(args)
+        self.assertEqual(output[0], "HELLO")
 
     def test_simple_echo(self):
         """Check if main actually echoes an input string"""
@@ -103,16 +155,21 @@ class TestEcho(unittest.TestCase):
         stdout, stderr = run_capture(self.module.__file__, args)
         self.assertEqual(
             stdout[0], args[0],
-            "The program is not performing simple echo"
-            )
+            "The program is not performing simple echo")
 
     def test_lower_short(self):
         """Check if short option '-l' performs lowercasing"""
         args = ["-l", "HELLO WORLD"]
         with Capturing() as output:
             self.module.main(args)
-        assert output, "The program did not print anything."
         self.assertEqual(output[0], "hello world")
+
+    def test_multiple(self):
+        """Check if multiple arguments preforms in the right order"""
+        args = ["-ult", "heLLo"]
+        with Capturing() as output:
+            self.module.main(args)
+        self.assertEqual(output[0], "Hello")
 
     #
     # Students: add more cmd line options tests here.
